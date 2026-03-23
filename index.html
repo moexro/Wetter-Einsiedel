@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kletterwald Wetter</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1f2d45;
+    --accent: #22d3a0;
+    --accent2: #f59e0b;
+    --danger: #ef4444;
+    --warn: #f97316;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --thunder: #a78bfa;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image:
+linear-gradient(rgba(34,211,160,0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(34,211,160,0.03) 1px, transparent 1px);
+background-size: 40px 40px;
+pointer-events: none;
+z-index: 0;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+
+/* Header */
+header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 24px 0 32px;
+border-bottom: 1px solid var(–border);
+margin-bottom: 28px;
+flex-wrap: wrap;
+gap: 16px;
+}
+
+.logo {
+display: flex;
+align-items: center;
+gap: 14px;
+}
+
+.logo-icon {
+width: 44px; height: 44px;
+background: linear-gradient(135deg, var(–accent), #0ea5e9);
+border-radius: 12px;
+display: flex; align-items: center; justify-content: center;
+font-size: 22px;
+}
+
+h1 {
+font-size: 1.6rem;
+font-weight: 800;
+letter-spacing: -0.02em;
+}
+h1 span { color: var(–accent); }
+
+.status-bar {
+display: flex;
+align-items: center;
+gap: 20px;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.75rem;
+color: var(–muted);
+}
+
+.dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: var(–accent);
+animation: pulse 2s infinite;
+}
+@keyframes pulse {
+0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,211,160,0.4); }
+50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(34,211,160,0); }
+}
+
+/* Location bar */
+.location-bar {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 16px 20px;
+display: flex;
+gap: 12px;
+align-items: center;
+margin-bottom: 24px;
+flex-wrap: wrap;
+}
+
+.location-bar input {
+flex: 1;
+min-width: 200px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 10px 14px;
+color: var(–text);
+font-family: ‘DM Mono’, monospace;
+font-size: 0.85rem;
+outline: none;
+transition: border-color 0.2s;
+}
+.location-bar input:focus { border-color: var(–accent); }
+
+.btn {
+background: var(–accent);
+color: #0a0e17;
+border: none;
+border-radius: 8px;
+padding: 10px 18px;
+font-family: ‘Syne’, sans-serif;
+font-weight: 700;
+font-size: 0.85rem;
+cursor: pointer;
+transition: all 0.2s;
+white-space: nowrap;
+}
+.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-ghost {
+background: var(–surface2);
+color: var(–text);
+border: 1px solid var(–border);
+}
+.btn-ghost:hover { border-color: var(–accent); color: var(–accent); }
+
+/* Alert Banner */
+.alert-banner {
+border-radius: 12px;
+padding: 14px 18px;
+margin-bottom: 24px;
+display: flex;
+align-items: center;
+gap: 12px;
+font-weight: 600;
+font-size: 0.9rem;
+animation: fadeIn 0.4s ease;
+display: none;
+}
+.alert-banner.danger { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+.alert-banner.warn { background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.4); color: #fdba74; }
+.alert-banner.ok { background: rgba(34,211,160,0.1); border: 1px solid rgba(34,211,160,0.3); color: var(–accent); }
+
+/* Main grid */
+.grid-main {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+gap: 16px;
+margin-bottom: 20px;
+}
+
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 20px;
+position: relative;
+overflow: hidden;
+transition: border-color 0.2s;
+animation: fadeIn 0.5s ease;
+}
+.card:hover { border-color: rgba(34,211,160,0.3); }
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(8px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(90deg, var(–accent), transparent);
+opacity: 0.6;
+}
+
+.card-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 16px;
+}
+
+.card-title {
+font-size: 0.7rem;
+font-weight: 700;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+color: var(–muted);
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.source-badge {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+padding: 2px 8px;
+border-radius: 4px;
+background: var(–surface2);
+color: var(–muted);
+border: 1px solid var(–border);
+}
+
+/* Big temp display */
+.temp-big {
+font-size: 4rem;
+font-weight: 800;
+letter-spacing: -0.04em;
+line-height: 1;
+margin: 8px 0;
+}
+
+.temp-big .unit { font-size: 2rem; color: var(–muted); }
+
+.weather-desc {
+font-size: 1rem;
+color: var(–text);
+margin: 6px 0 16px;
+font-weight: 600;
+}
+
+/* Stat grid inside card */
+.stat-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin-top: 12px;
+}
+
+.stat {
+background: var(–surface2);
+border-radius: 10px;
+padding: 10px 12px;
+}
+
+.stat-label {
+font-size: 0.65rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(–muted);
+font-weight: 600;
+margin-bottom: 4px;
+}
+
+.stat-val {
+font-family: ‘DM Mono’, monospace;
+font-size: 1.1rem;
+font-weight: 500;
+color: var(–text);
+}
+
+.stat-val.danger { color: var(–danger); }
+.stat-val.warn { color: var(–warn); }
+.stat-val.ok { color: var(–accent); }
+
+/* Hourly forecast */
+.hourly-row {
+display: flex;
+gap: 8px;
+overflow-x: auto;
+padding-bottom: 6px;
+margin-top: 12px;
+scrollbar-width: thin;
+scrollbar-color: var(–border) transparent;
+}
+
+.hour-chip {
+flex: 0 0 auto;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 10px 12px;
+text-align: center;
+min-width: 64px;
+transition: all 0.2s;
+cursor: default;
+}
+
+.hour-chip:hover { border-color: var(–accent); }
+.hour-chip.thunder { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.08); }
+.hour-chip.rain { border-color: rgba(14,165,233,0.4); background: rgba(14,165,233,0.07); }
+
+.hour-time {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+color: var(–muted);
+margin-bottom: 6px;
+}
+
+.hour-icon { font-size: 1.3rem; margin-bottom: 4px; }
+.hour-temp {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.85rem;
+font-weight: 500;
+}
+.hour-precip {
+font-size: 0.65rem;
+color: #60a5fa;
+margin-top: 2px;
+font-family: ‘DM Mono’, monospace;
+}
+
+/* Thunder card special */
+.thunder-card::before {
+background: linear-gradient(90deg, var(–thunder), transparent);
+}
+
+.thunder-level {
+display: flex;
+align-items: center;
+gap: 12px;
+margin: 12px 0;
+}
+
+.thunder-emoji { font-size: 2.5rem; }
+
+.thunder-text {
+font-size: 1.3rem;
+font-weight: 700;
+}
+
+/* Progress bar */
+.progress-wrap {
+background: var(–surface2);
+border-radius: 6px;
+height: 8px;
+overflow: hidden;
+margin-top: 6px;
+}
+.progress-bar {
+height: 100%;
+border-radius: 6px;
+transition: width 1s ease;
+}
+
+/* Radar section */
+.radar-section {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 16px;
+overflow: hidden;
+margin-bottom: 20px;
+animation: fadeIn 0.5s ease 0.2s both;
+}
+
+.radar-header {
+padding: 16px 20px;
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 10px;
+}
+
+.radar-title {
+font-size: 0.7rem;
+font-weight: 700;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+color: var(–muted);
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.radar-tabs {
+display: flex;
+gap: 6px;
+}
+
+.tab {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 6px 12px;
+font-size: 0.75rem;
+font-weight: 600;
+color: var(–muted);
+cursor: pointer;
+transition: all 0.2s;
+font-family: ‘Syne’, sans-serif;
+}
+.tab.active { background: var(–accent); color: #0a0e17; border-color: var(–accent); }
+.tab:hover:not(.active) { border-color: var(–accent); color: var(–accent); }
+
+.radar-frame {
+width: 100%;
+height: 420px;
+border: none;
+display: block;
+background: #000;
+}
+
+/* Compare table */
+.compare-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+gap: 16px;
+margin-bottom: 20px;
+animation: fadeIn 0.5s ease 0.3s both;
+}
+
+.source-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 18px;
+position: relative;
+overflow: hidden;
+}
+
+.source-name {
+font-size: 0.65rem;
+font-weight: 700;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 10px;
+}
+
+.source-temp {
+font-size: 2.2rem;
+font-weight: 800;
+letter-spacing: -0.03em;
+}
+
+.source-details {
+margin-top: 10px;
+display: flex;
+flex-direction: column;
+gap: 5px;
+}
+
+.source-row {
+display: flex;
+justify-content: space-between;
+font-size: 0.78rem;
+color: var(–muted);
+font-family: ‘DM Mono’, monospace;
+padding: 5px 0;
+border-bottom: 1px solid var(–border);
+}
+
+.source-row:last-child { border-bottom: none; }
+.source-row span:last-child { color: var(–text); }
+
+/* 7-day */
+.daily-row {
+display: flex;
+flex-direction: column;
+gap: 6px;
+margin-top: 10px;
+}
+
+.day-row {
+display: flex;
+align-items: center;
+gap: 12px;
+background: var(–surface2);
+border-radius: 8px;
+padding: 10px 14px;
+transition: background 0.2s;
+}
+.day-row:hover { background: #1f2d40; }
+
+.day-name {
+width: 36px;
+font-size: 0.8rem;
+font-weight: 700;
+color: var(–muted);
+text-transform: uppercase;
+letter-spacing: 0.06em;
+}
+
+.day-icon { font-size: 1.2rem; width: 28px; text-align: center; }
+
+.day-bar-wrap {
+flex: 1;
+height: 6px;
+background: var(–border);
+border-radius: 3px;
+position: relative;
+}
+
+.day-bar {
+height: 100%;
+border-radius: 3px;
+background: linear-gradient(90deg, #60a5fa, var(–warn));
+position: absolute;
+}
+
+.day-temps {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.8rem;
+display: flex;
+gap: 8px;
+min-width: 80px;
+justify-content: flex-end;
+}
+
+.day-high { color: var(–text); font-weight: 500; }
+.day-low { color: var(–muted); }
+
+.day-precip {
+width: 40px;
+text-align: right;
+font-size: 0.72rem;
+font-family: ‘DM Mono’, monospace;
+color: #60a5fa;
+}
+
+/* Loading */
+.loading {
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 40px;
+color: var(–muted);
+font-size: 0.9rem;
+gap: 10px;
+}
+
+.spinner {
+width: 20px; height: 20px;
+border: 2px solid var(–border);
+border-top-color: var(–accent);
+border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Sicherheits-Ampel */
+.ampel {
+display: flex;
+gap: 10px;
+margin-top: 14px;
+}
+
+.ampel-item {
+flex: 1;
+border-radius: 10px;
+padding: 10px;
+text-align: center;
+font-size: 0.7rem;
+font-weight: 700;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+opacity: 0.3;
+transition: opacity 0.3s;
+border: 1px solid transparent;
+}
+
+.ampel-item.active { opacity: 1; }
+.ampel-item.green { background: rgba(34,211,160,0.1); border-color: var(–accent); color: var(–accent); }
+.ampel-item.yellow { background: rgba(245,158,11,0.1); border-color: var(–accent2); color: var(–accent2); }
+.ampel-item.red { background: rgba(239,68,68,0.1); border-color: var(–danger); color: var(–danger); }
+
+.ampel-icon { font-size: 1.5rem; margin-bottom: 4px; }
+
+/* Footer */
+footer {
+border-top: 1px solid var(–border);
+margin-top: 28px;
+padding: 20px 0;
+display: flex;
+align-items: center;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 10px;
+color: var(–muted);
+font-size: 0.75rem;
+font-family: ‘DM Mono’, monospace;
+}
+
+#owm-key-wrap {
+display: flex;
+align-items: center;
+gap: 8px;
+flex-wrap: wrap;
+}
+
+#owm-key-wrap input {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 6px 10px;
+color: var(–text);
+font-family: ‘DM Mono’, monospace;
+font-size: 0.75rem;
+outline: none;
+width: 220px;
+}
+#owm-key-wrap input:focus { border-color: var(–accent); }
+
+/* Wind direction arrow */
+.wind-arrow {
+display: inline-block;
+transition: transform 0.5s;
+font-size: 1rem;
+}
+
+@media (max-width: 600px) {
+h1 { font-size: 1.2rem; }
+.temp-big { font-size: 3rem; }
+.radar-frame { height: 300px; }
+}
+</style>
+
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🌲</div>
+      <div>
+        <h1>Kletterwald <span>Wetter</span></h1>
+        <div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">Sicherheits-Dashboard</div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="dot"></div>
+      <span id="last-update">Lade...</span>
+      <span>|</span>
+      <span id="coords-display">—</span>
+    </div>
+  </header>
+
+  <div class="location-bar">
+    <span style="color:var(--muted);font-size:0.85rem;white-space:nowrap;">📍 Standort:</span>
+    <input type="text" id="city-input" placeholder="z.B. Freiburg im Breisgau" />
+    <button class="btn" onclick="searchCity()">Suchen</button>
+    <button class="btn btn-ghost" onclick="useGPS()">📡 GPS nutzen</button>
+    <button class="btn btn-ghost" onclick="refreshAll()">↻ Aktualisieren</button>
+  </div>
+
+  <div class="alert-banner" id="alert-banner">
+    <span id="alert-icon">⚠️</span>
+    <span id="alert-text">–</span>
+  </div>
+
+  <!-- Hauptkarten -->
+
+  <div class="grid-main" id="main-grid">
+    <div class="loading"><div class="spinner"></div> Wetterdaten werden geladen…</div>
+  </div>
+
+  <!-- Radar Tabs -->
+
+  <div class="radar-section">
+    <div class="radar-header">
+      <div class="radar-title">🛰️ Live-Radar &amp; Blitze</div>
+      <div class="radar-tabs">
+        <div class="tab active" onclick="switchRadar('blitz')">⚡ Blitzortung</div>
+        <div class="tab" onclick="switchRadar('regen')">🌧️ DWD Regen</div>
+        <div class="tab" onclick="switchRadar('satellite')">🛰️ Satellit</div>
+      </div>
+    </div>
+    <iframe id="radar-frame" class="radar-frame"
+      src="https://www.blitzortung.org/de/live_lightning_maps.php?map=10"
+      allowfullscreen loading="lazy"></iframe>
+  </div>
+
+  <!-- Quellenvergleich -->
+
+  <div style="margin-bottom:14px;">
+    <div class="card-title" style="padding:0 4px;">📊 Quellenvergleich</div>
+  </div>
+  <div class="compare-grid" id="compare-grid">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <!-- 7-Tage -->
+
+  <div class="card" style="margin-bottom:20px; animation-delay:0.4s;">
+    <div class="card-header">
+      <div class="card-title">📅 7-Tage Vorschau <span class="source-badge">Open-Meteo</span></div>
+    </div>
+    <div id="daily-forecast"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- OWM Key -->
+
+  <div id="owm-section" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔑 OpenWeatherMap API-Key (optional)</div>
+      </div>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:12px;">
+        Kostenloser Key auf <strong style="color:var(--text)">openweathermap.org</strong> → verbessert Gewitterdaten &amp; Winddetails.
+      </p>
+      <div id="owm-key-wrap">
+        <input type="text" id="owm-key-input" placeholder="Dein OWM API Key…" />
+        <button class="btn" onclick="saveOWMKey()">Speichern &amp; laden</button>
+      </div>
+      <div id="owm-status" style="margin-top:8px; font-size:0.78rem; color:var(--muted);"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div>Quellen: Open-Meteo (ICON/ECMWF) · Brightsky/DWD · OpenWeatherMap · Blitzortung.org</div>
+    <div id="footer-time">—</div>
+  </footer>
+
+</div>
+
+<script>
+// =========================================================
+// State
+// =========================================================
+let STATE = {
+  lat: null,
+  lon: null,
+  cityName: 'Unbekannt',
+  owmKey: localStorage.getItem('owm_key') || '',
+  omData: null,
+  bsData: null,
+  owmData: null,
+};
+
+if (STATE.owmKey) {
+  document.getElementById('owm-key-input').value = STATE.owmKey;
+}
+
+// =========================================================
+// Geo + Init
+// =========================================================
+async function useGPS() {
+  if (!navigator.geolocation) return alert('GPS nicht verfügbar');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    STATE.lat = pos.coords.latitude;
+    STATE.lon = pos.coords.longitude;
+    const name = await reverseGeocode(STATE.lat, STATE.lon);
+    STATE.cityName = name;
+    document.getElementById('city-input').value = name;
+    document.getElementById('coords-display').textContent = `${STATE.lat.toFixed(4)}, ${STATE.lon.toFixed(4)}`;
+    loadAll();
+  }, () => alert('GPS-Zugriff verweigert'));
+}
+
+async function searchCity() {
+  const q = document.getElementById('city-input').value.trim();
+  if (!q) return;
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
+  const data = await res.json();
+  if (!data.length) return alert('Ort nicht gefunden');
+  STATE.lat = parseFloat(data[0].lat);
+  STATE.lon = parseFloat(data[0].lon);
+  STATE.cityName = data[0].display_name.split(',')[0];
+  document.getElementById('coords-display').textContent = `${STATE.lat.toFixed(4)}, ${STATE.lon.toFixed(4)}`;
+  loadAll();
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const d = await res.json();
+    return d.address?.city || d.address?.town || d.address?.village || 'Ihr Standort';
+  } catch { return 'Ihr Standort'; }
+}
+
+function refreshAll() { if (STATE.lat) loadAll(); }
+
+function saveOWMKey() {
+  const k = document.getElementById('owm-key-input').value.trim();
+  STATE.owmKey = k;
+  localStorage.setItem('owm_key', k);
+  document.getElementById('owm-status').textContent = '✓ Key gespeichert';
+  if (STATE.lat) loadAll();
+}
+
+// =========================================================
+// Radar switch
+// =========================================================
+const RADAR_URLS = {
+  blitz: 'https://www.blitzortung.org/de/live_lightning_maps.php?map=10',
+  regen: 'https://www.dwd.de/DWD/wetter/radar/rad_brd_akt.jpg',
+  satellite: 'https://www.sat24.com/de',
+};
+
+function switchRadar(type) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  const frame = document.getElementById('radar-frame');
+  if (type === 'regen') {
+    // DWD Radar: embed as image since it's a JPEG
+    frame.outerHTML = '<div id="radar-frame" style="width:100%;height:420px;background:#000;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">' +
+      '<img src="https://www.dwd.de/DWD/wetter/radar/rad_brd_akt.jpg" style="max-width:100%;max-height:420px;object-fit:contain;" onerror="this.parentElement.innerHTML=\'<p style=color:var(--muted);text-align:center>DWD Radar Bild – <a href=https://www.dwd.de/DE/leistungen/radarbild_deutschland/radarbild_deutschland.html target=_blank style=color:var(--accent)>Direkt öffnen</a></p>\'">' +
+      '<button onclick="document.getElementById(\'radar-frame\').querySelector(\'img\').src=\'https://www.dwd.de/DWD/wetter/radar/rad_brd_akt.jpg?t=\'+Date.now()" style="position:absolute;top:10px;right:10px;background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;font-size:0.75rem;">↻ Neu laden</button>' +
+      '</div>';
+  } else {
+    const existing = document.getElementById('radar-frame');
+    const newFrame = document.createElement('iframe');
+    newFrame.id = 'radar-frame';
+    newFrame.className = 'radar-frame';
+    newFrame.src = RADAR_URLS[type];
+    newFrame.setAttribute('allowfullscreen', '');
+    newFrame.setAttribute('loading', 'lazy');
+    existing.parentNode.replaceChild(newFrame, existing);
+  }
+}
+
+// =========================================================
+// Load all data
+// =========================================================
+async function loadAll() {
+  document.getElementById('last-update').textContent = 'Wird aktualisiert…';
+  document.getElementById('main-grid').innerHTML = '<div class="loading"><div class="spinner"></div> Lade Wetterdaten…</div>';
+  document.getElementById('compare-grid').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  document.getElementById('daily-forecast').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  await Promise.allSettled([
+    loadOpenMeteo(),
+    loadBrightsky(),
+    STATE.owmKey ? loadOWM() : Promise.resolve(),
+  ]);
+
+  renderMainCards();
+  renderCompare();
+  renderDaily();
+  updateAlert();
+  document.getElementById('last-update').textContent = 'Zuletzt: ' + new Date().toLocaleTimeString('de-DE');
+  document.getElementById('footer-time').textContent = new Date().toLocaleString('de-DE');
+}
+
+// =========================================================
+// Open-Meteo
+// =========================================================
+async function loadOpenMeteo() {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${STATE.lat}&longitude=${STATE.lon}` +
+    `&hourly=temperature_2m,relativehumidity_2m,precipitation,windspeed_10m,winddirection_10m,weathercode,cape,lightning_potential` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max` +
+    `&current_weather=true&timezone=Europe%2FBerlin&forecast_days=7`;
+  try {
+    const r = await fetch(url);
+    STATE.omData = await r.json();
+  } catch (e) { console.error('Open-Meteo Fehler:', e); }
+}
+
+// =========================================================
+// Brightsky (DWD)
+// =========================================================
+async function loadBrightsky() {
+  const now = new Date();
+  const end = new Date(now.getTime() + 24*3600*1000);
+  const fmt = d => d.toISOString().split('T')[0];
+  const url = `https://api.brightsky.dev/weather?lat=${STATE.lat}&lon=${STATE.lon}&date=${fmt(now)}&last_date=${fmt(end)}&units=dwd`;
+  try {
+    const r = await fetch(url);
+    STATE.bsData = await r.json();
+  } catch (e) { console.error('Brightsky Fehler:', e); }
+}
+
+// =========================================================
+// OpenWeatherMap
+// =========================================================
+async function loadOWM() {
+  try {
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${STATE.lat}&lon=${STATE.lon}&appid=${STATE.owmKey}&units=metric&lang=de`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('OWM Fehler ' + r.status);
+    STATE.owmData = await r.json();
+    document.getElementById('owm-status').textContent = '✓ OpenWeatherMap aktiv';
+  } catch (e) {
+    STATE.owmData = null;
+    document.getElementById('owm-status').textContent = '✗ Key ungültig oder Fehler';
+  }
+}
+
+// =========================================================
+// WMO weather code → emoji + text
+// =========================================================
+function wmoEmoji(code) {
+  if (code === 0) return { e: '☀️', t: 'Klarer Himmel' };
+  if (code <= 2) return { e: '⛅', t: 'Teilweise bewölkt' };
+  if (code === 3) return { e: '☁️', t: 'Bedeckt' };
+  if (code <= 49) return { e: '🌫️', t: 'Nebel' };
+  if (code <= 59) return { e: '🌦️', t: 'Nieselregen' };
+  if (code <= 69) return { e: '🌧️', t: 'Regen' };
+  if (code <= 79) return { e: '🌨️', t: 'Schnee' };
+  if (code <= 84) return { e: '🌦️', t: 'Regenschauer' };
+  if (code <= 86) return { e: '🌨️', t: 'Schneeschauer' };
+  if (code <= 99) return { e: '⛈️', t: 'Gewitter' };
+  return { e: '🌡️', t: 'Unbekannt' };
+}
+
+function isThunderCode(code) { return code >= 95; }
+
+function windDir(deg) {
+  const dirs = ['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+// =========================================================
+// Thunder risk assessment
+// =========================================================
+function thunderRisk() {
+  if (!STATE.omData) return { level: 0, label: 'Keine Daten', color: 'green' };
+  const h = STATE.omData.hourly;
+  const now = new Date();
+  // next 3h
+  let maxCAPE = 0, maxLP = 0, thunderCount = 0;
+  for (let i = 0; i < Math.min(h.time.length, 6); i++) {
+    const t = new Date(h.time[i]);
+    if (t >= now && t <= new Date(now.getTime() + 3*3600*1000)) {
+      maxCAPE = Math.max(maxCAPE, h.cape?.[i] || 0);
+      maxLP = Math.max(maxLP, h.lightning_potential?.[i] || 0);
+      if (isThunderCode(h.weathercode[i])) thunderCount++;
+    }
+  }
+  // CAPE thresholds: 0-300 weak, 300-1000 moderate, 1000-2500 strong, >2500 severe
+  if (maxCAPE > 2500 || thunderCount >= 2) return { level: 3, label: 'SEHR HOCH – Sofort schließen!', color: 'red', cape: maxCAPE };
+  if (maxCAPE > 1000 || thunderCount >= 1) return { level: 2, label: 'HOCH – Vorsicht geboten', color: 'orange', cape: maxCAPE };
+  if (maxCAPE > 300) return { level: 1, label: 'MÖGLICH – Beobachten', color: 'yellow', cape: maxCAPE };
+  return { level: 0, label: 'GERING – Normalbetrieb', color: 'green', cape: maxCAPE };
+}
+
+// =========================================================
+// Render Main Cards
+// =========================================================
+function renderMainCards() {
+  const om = STATE.omData;
+  const bs = STATE.bsData;
+  if (!om && !bs) {
+    document.getElementById('main-grid').innerHTML = '<div style="color:var(--danger);padding:20px">Keine Daten geladen. Bitte Standort eingeben.</div>';
+    return;
+  }
+
+  const cw = om?.current_weather;
+  const wmo = wmoEmoji(cw?.weathercode || 0);
+  const risk = thunderRisk();
+
+  // Current hour index
+  const nowStr = new Date().toISOString().substring(0, 13);
+  let hIdx = 0;
+  if (om?.hourly?.time) {
+    hIdx = om.hourly.time.findIndex(t => t.startsWith(nowStr));
+    if (hIdx < 0) hIdx = 0;
+  }
+
+  const humidity = om?.hourly?.relativehumidity_2m?.[hIdx] ?? '–';
+  const windspeed = cw?.windspeed ?? '–';
+  const winddir = cw?.winddirection ?? 0;
+  const precip = om?.hourly?.precipitation?.[hIdx] ?? 0;
+  const cape = om?.hourly?.cape?.[hIdx] ?? 0;
+
+  // Sicherheits-Ampel status
+  const ampelGreen = risk.level === 0;
+  const ampelYellow = risk.level === 1;
+  const ampelRed = risk.level >= 2;
+
+  // Hourly next 12h
+  let hourlyHTML = '';
+  const startH = hIdx;
+  for (let i = startH; i < Math.min(startH + 13, om?.hourly?.time?.length || 0); i++) {
+    const t = new Date(om.hourly.time[i]);
+    const hWmo = wmoEmoji(om.hourly.weathercode[i]);
+    const isT = isThunderCode(om.hourly.weathercode[i]);
+    const isR = om.hourly.weathercode[i] >= 50;
+    const pr = (om.hourly.precipitation[i] || 0).toFixed(1);
+    hourlyHTML += `<div class="hour-chip ${isT ? 'thunder' : isR ? 'rain' : ''}">
+      <div class="hour-time">${t.getHours().toString().padStart(2,'0')}:00</div>
+      <div class="hour-icon">${hWmo.e}</div>
+      <div class="hour-temp">${Math.round(om.hourly.temperature_2m[i])}°</div>
+      ${pr > 0 ? `<div class="hour-precip">${pr}mm</div>` : '<div class="hour-precip" style="opacity:0">0</div>'}
+    </div>`;
+  }
+
+  document.getElementById('main-grid').innerHTML = `
+    <!-- Aktuell -->
+    <div class="card" style="grid-column: span 1;">
+      <div class="card-header">
+        <div class="card-title">🌡️ Aktuell – ${STATE.cityName} <span class="source-badge">Open-Meteo</span></div>
+      </div>
+      <div class="temp-big">${Math.round(cw?.temperature ?? 0)}<span class="unit">°C</span></div>
+      <div class="weather-desc">${wmo.e} ${wmo.t}</div>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">💧 Luftfeuchte</div>
+          <div class="stat-val ${humidity > 85 ? 'warn' : ''}">${humidity}%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">💨 Wind</div>
+          <div class="stat-val ${windspeed > 40 ? 'danger' : windspeed > 25 ? 'warn' : ''}">${windspeed} km/h ${windDir(winddir)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">🌧️ Niederschlag</div>
+          <div class="stat-val ${precip > 3 ? 'warn' : ''}">${precip.toFixed(1)} mm/h</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">⚡ CAPE Index</div>
+          <div class="stat-val ${cape > 1000 ? 'danger' : cape > 300 ? 'warn' : 'ok'}">${Math.round(cape)} J/kg</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gewitter-Ampel -->
+    <div class="card thunder-card">
+      <div class="card-header">
+        <div class="card-title">⚡ Gewitterrisiko (nächste 3h)</div>
+      </div>
+      <div class="thunder-level">
+        <div class="thunder-emoji">${risk.level === 0 ? '✅' : risk.level === 1 ? '⚠️' : risk.level === 2 ? '🟠' : '🔴'}</div>
+        <div>
+          <div class="thunder-text" style="color:${risk.color === 'green' ? 'var(--accent)' : risk.color === 'yellow' ? 'var(--accent2)' : risk.color === 'orange' ? 'var(--warn)' : 'var(--danger)'}">${risk.label}</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace;">CAPE: ${Math.round(risk.cape || 0)} J/kg</div>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" style="width:${Math.min(100, (risk.level / 3) * 100)}%;background:${risk.color === 'green' ? 'var(--accent)' : risk.color === 'yellow' ? 'var(--accent2)' : risk.color === 'orange' ? 'var(--warn)' : 'var(--danger)'}"></div>
+      </div>
+      <div class="ampel">
+        <div class="ampel-item green ${ampelGreen ? 'active' : ''}">
+          <div class="ampel-icon">🟢</div>
+          Betrieb
+        </div>
+        <div class="ampel-item yellow ${ampelYellow ? 'active' : ''}">
+          <div class="ampel-icon">🟡</div>
+          Beobachten
+        </div>
+        <div class="ampel-item red ${ampelRed ? 'active' : ''}">
+          <div class="ampel-icon">🔴</div>
+          Schließen
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:0.72rem;color:var(--muted);line-height:1.5;">
+        ℹ️ CAPE >1000 J/kg = erhöhte Gewittergefahr. Bei aktivem Gewitter im Umkreis: sofort alle Teilnehmer abseilen &amp; in Sicherheit bringen.
+      </div>
+    </div>
+
+    <!-- Stündliche Vorschau -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="card-header">
+        <div class="card-title">⏱️ Stündliche Vorschau (12h) <span class="source-badge">Open-Meteo ICON</span></div>
+      </div>
+      <div class="hourly-row">${hourlyHTML}</div>
+    </div>
+  `;
+}
+
+// =========================================================
+// Render Compare
+// =========================================================
+function renderCompare() {
+  const cards = [];
+
+  // Open-Meteo
+  if (STATE.omData) {
+    const cw = STATE.omData.current_weather;
+    const nowStr = new Date().toISOString().substring(0, 13);
+    let hIdx = STATE.omData.hourly.time.findIndex(t => t.startsWith(nowStr));
+    if (hIdx < 0) hIdx = 0;
+    const humidity = STATE.omData.hourly.relativehumidity_2m?.[hIdx] ?? '–';
+    const precip = STATE.omData.hourly.precipitation?.[hIdx] ?? 0;
+    const wmo = wmoEmoji(cw.weathercode);
+    cards.push(`
+      <div class="source-card">
+        <div class="source-name" style="color:var(--accent);">Open-Meteo (ICON + ECMWF)</div>
+        <div class="source-temp">${Math.round(cw.temperature)}°C</div>
+        <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">${wmo.e} ${wmo.t}</div>
+        <div class="source-details">
+          <div class="source-row"><span>Wind</span><span>${cw.windspeed} km/h ${windDir(cw.winddirection)}</span></div>
+          <div class="source-row"><span>Luftfeuchte</span><span>${humidity}%</span></div>
+          <div class="source-row"><span>Niederschlag</span><span>${precip.toFixed(1)} mm/h</span></div>
+          <div class="source-row"><span>Modell</span><span>ICON-EU / ECMWF</span></div>
+        </div>
+      </div>`);
+  }
+
+  // Brightsky/DWD
+  if (STATE.bsData?.weather?.length) {
+    const now = new Date();
+    let best = STATE.bsData.weather.reduce((prev, cur) => {
+      const pt = Math.abs(new Date(prev.timestamp) - now);
+      const ct = Math.abs(new Date(cur.timestamp) - now);
+      return ct < pt ? cur : prev;
+    });
+    cards.push(`
+      <div class="source-card">
+        <div class="source-name" style="color:#60a5fa;">DWD / Brightsky (amtlich)</div>
+        <div class="source-temp">${best.temperature !== null ? Math.round(best.temperature) + '°C' : '–'}</div>
+        <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">🏛️ Amtliche DWD-Daten</div>
+        <div class="source-details">
+          <div class="source-row"><span>Wind</span><span>${best.wind_speed !== null ? Math.round(best.wind_speed) + ' km/h' : '–'}</span></div>
+          <div class="source-row"><span>Böen</span><span>${best.wind_gust_speed !== null ? Math.round(best.wind_gust_speed) + ' km/h' : '–'}</span></div>
+          <div class="source-row"><span>Luftfeuchte</span><span>${best.relative_humidity !== null ? best.relative_humidity + '%' : '–'}</span></div>
+          <div class="source-row"><span>Luftdruck</span><span>${best.pressure_msl !== null ? best.pressure_msl + ' hPa' : '–'}</span></div>
+          <div class="source-row"><span>Niederschlag</span><span>${best.precipitation !== null ? best.precipitation + ' mm' : '–'}</span></div>
+        </div>
+      </div>`);
+  } else {
+    cards.push(`
+      <div class="source-card" style="opacity:0.5;">
+        <div class="source-name">DWD / Brightsky</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:10px;">Keine Daten verfügbar (möglicherweise außerhalb Deutschlands)</div>
+      </div>`);
+  }
+
+  // OWM
+  if (STATE.owmData) {
+    const o = STATE.owmData;
+    cards.push(`
+      <div class="source-card">
+        <div class="source-name" style="color:var(--warn);">OpenWeatherMap</div>
+        <div class="source-temp">${Math.round(o.main.temp)}°C</div>
+        <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">${o.weather[0].description}</div>
+        <div class="source-details">
+          <div class="source-row"><span>Gefühlt</span><span>${Math.round(o.main.feels_like)}°C</span></div>
+          <div class="source-row"><span>Luftfeuchte</span><span>${o.main.humidity}%</span></div>
+          <div class="source-row"><span>Wind</span><span>${Math.round(o.wind.speed * 3.6)} km/h</span></div>
+          <div class="source-row"><span>Sichtweite</span><span>${(o.visibility / 1000).toFixed(1)} km</span></div>
+        </div>
+      </div>`);
+  } else {
+    cards.push(`
+      <div class="source-card" style="opacity:0.5; border-style:dashed;">
+        <div class="source-name">OpenWeatherMap</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:10px;">→ API-Key eingeben (unten)</div>
+      </div>`);
+  }
+
+  document.getElementById('compare-grid').innerHTML = cards.join('');
+}
+
+// =========================================================
+// Render Daily
+// =========================================================
+function renderDaily() {
+  if (!STATE.omData?.daily) {
+    document.getElementById('daily-forecast').innerHTML = '<div style="color:var(--muted);padding:10px">Keine 7-Tage-Daten</div>';
+    return;
+  }
+  const d = STATE.omData.daily;
+  const days = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const allMaxes = d.temperature_2m_max;
+  const globalMin = Math.min(...d.temperature_2m_min);
+  const globalMax = Math.max(...allMaxes);
+  const range = globalMax - globalMin || 1;
+
+  let html = '<div class="daily-row">';
+  for (let i = 0; i < d.time.length; i++) {
+    const date = new Date(d.time[i]);
+    const dayName = i === 0 ? 'Heu' : days[date.getDay()];
+    const wmo = wmoEmoji(d.weathercode[i]);
+    const lo = d.temperature_2m_min[i];
+    const hi = d.temperature_2m_max[i];
+    const left = ((lo - globalMin) / range * 80).toFixed(0);
+    const width = ((hi - lo) / range * 80).toFixed(0);
+    const prec = d.precipitation_sum[i] || 0;
+    const wind = d.windspeed_10m_max[i] || 0;
+    const isT = isThunderCode(d.weathercode[i]);
+    html += `
+      <div class="day-row" style="${isT ? 'border-left:3px solid var(--thunder);' : ''}">
+        <div class="day-name">${dayName}</div>
+        <div class="day-icon">${wmo.e}</div>
+        <div class="day-bar-wrap">
+          <div class="day-bar" style="left:${left}%;width:${Math.max(width,5)}%;${isT ? 'background:var(--thunder);' : ''}"></div>
+        </div>
+        <div class="day-temps">
+          <span class="day-high">${Math.round(hi)}°</span>
+          <span class="day-low">${Math.round(lo)}°</span>
+        </div>
+        <div class="day-precip">${prec > 0 ? prec.toFixed(1)+'mm' : ''}</div>
+        <div style="width:50px;text-align:right;font-size:0.72rem;font-family:'DM Mono',monospace;color:${wind > 40 ? 'var(--danger)' : 'var(--muted)'};">${Math.round(wind)}km/h</div>
+      </div>`;
+  }
+  html += '</div>';
+  document.getElementById('daily-forecast').innerHTML = html;
+}
+
+// =========================================================
+// Alert Banner
+// =========================================================
+function updateAlert() {
+  const risk = thunderRisk();
+  const banner = document.getElementById('alert-banner');
+  banner.style.display = 'none';
+  banner.className = 'alert-banner';
+
+  let msgs = [];
+
+  if (STATE.omData) {
+    const cw = STATE.omData.current_weather;
+    if (cw.windspeed > 50) msgs.push({ cls:'danger', icon:'🌪️', text:`Sturmwarnung: Wind ${cw.windspeed} km/h – Betrieb sofort einstellen!` });
+    else if (cw.windspeed > 30) msgs.push({ cls:'warn', icon:'💨', text:`Erhöhte Windgeschwindigkeit: ${cw.windspeed} km/h – Vorsicht!` });
+    if (risk.level >= 2) msgs.push({ cls:'danger', icon:'⚡', text:`${risk.label}` });
+    else if (risk.level === 1) msgs.push({ cls:'warn', icon:'⚠️', text:`Gewitterrisiko in nächsten 3h möglich – Situation beobachten.` });
+  }
+
+  if (msgs.length) {
+    const m = msgs[0];
+    banner.classList.add(m.cls);
+    document.getElementById('alert-icon').textContent = m.icon;
+    document.getElementById('alert-text').textContent = m.text;
+    banner.style.display = 'flex';
+  }
+}
+
+// =========================================================
+// Auto-refresh every 10 min
+// =========================================================
+setInterval(() => { if (STATE.lat) loadAll(); }, 10 * 60 * 1000);
+
+// Clock update
+setInterval(() => {
+  document.getElementById('footer-time').textContent = new Date().toLocaleString('de-DE');
+}, 10000);
+
+// =========================================================
+// Init: load last used city or prompt GPS
+// =========================================================
+const lastCity = localStorage.getItem('kletterwald_city');
+if (lastCity) {
+  document.getElementById('city-input').value = lastCity;
+}
+
+document.getElementById('city-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchCity();
+  if (STATE.lat) localStorage.setItem('kletterwald_city', document.getElementById('city-input').value);
+});
+</script>
+
+</body>
+</html>
