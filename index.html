@@ -680,13 +680,13 @@ h1 { font-size: 1.2rem; }
     <div class="radar-header">
       <div class="radar-title">🛰️ Live-Radar &amp; Blitze</div>
       <div class="radar-tabs">
-        <div class="tab active" onclick="switchRadar('blitz')">⚡ Blitzortung</div>
-        <div class="tab" onclick="switchRadar('regen')">🌧️ DWD Regen</div>
-        <div class="tab" onclick="switchRadar('satellite')">🛰️ Satellit</div>
+        <div class="tab active" data-radar="blitz" onclick="switchRadar('blitz')">⚡ Blitz + Radar</div>
+        <div class="tab" data-radar="regen" onclick="switchRadar('regen')">🌧️ Niederschlag</div>
+        <div class="tab" data-radar="satellite" onclick="switchRadar('satellite')">🛰️ Satellit</div>
       </div>
     </div>
     <iframe id="radar-frame" class="radar-frame"
-      src="https://www.blitzortung.org/de/live_lightning_maps.php?map=10"
+      src="https://www.rainviewer.com/map.html?loc=51.0,10.0,6&oFa=0&oC=1&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1"
       allowfullscreen loading="lazy"></iframe>
   </div>
 
@@ -737,10 +737,14 @@ h1 { font-size: 1.2rem; }
 // =========================================================
 // State
 // =========================================================
+const DEFAULT_LAT = 49.8999;
+const DEFAULT_LON = 9.9591;
+const DEFAULT_CITY = 'Kletterwald Einsiedel';
+
 let STATE = {
-  lat: null,
-  lon: null,
-  cityName: 'Unbekannt',
+  lat: DEFAULT_LAT,
+  lon: DEFAULT_LON,
+  cityName: DEFAULT_CITY,
   owmKey: localStorage.getItem('owm_key') || '',
   omData: null,
   bsData: null,
@@ -749,7 +753,15 @@ let STATE = {
 
 if (STATE.owmKey) {
   document.getElementById('owm-key-input').value = STATE.owmKey;
+  document.getElementById('owm-status').innerHTML = '<span style="color:var(--accent)">✓ Key geladen (aus lokalem Speicher)</span>';
 }
+
+// Set default location in UI
+document.getElementById('city-input').value = DEFAULT_CITY;
+document.getElementById('coords-display').textContent = `${DEFAULT_LAT.toFixed(4)}, ${DEFAULT_LON.toFixed(4)}`;
+
+// Auto-load on startup
+loadAll();
 
 // =========================================================
 // Geo + Init
@@ -792,41 +804,60 @@ function refreshAll() { if (STATE.lat) loadAll(); }
 
 function saveOWMKey() {
   const k = document.getElementById('owm-key-input').value.trim();
+  if (!k) {
+    document.getElementById('owm-status').textContent = '✗ Bitte Key eingeben';
+    return;
+  }
   STATE.owmKey = k;
   localStorage.setItem('owm_key', k);
-  document.getElementById('owm-status').textContent = '✓ Key gespeichert';
-  if (STATE.lat) loadAll();
+  document.getElementById('owm-status').innerHTML = '⏳ Prüfe Key…';
+  // Test key with a simple call first
+  fetch(`https://api.openweathermap.org/data/2.5/weather?q=Berlin&appid=${k}&units=metric`)
+    .then(r => {
+      if (r.ok) {
+        document.getElementById('owm-status').innerHTML = '<span style="color:var(--accent)">✓ Key gültig &amp; gespeichert</span>';
+        if (STATE.lat) loadAll();
+      } else {
+        document.getElementById('owm-status').innerHTML = '<span style="color:var(--danger)">✗ Key ungültig (HTTP ' + r.status + ')</span>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('owm-status').innerHTML = '<span style="color:var(--danger)">✗ Netzwerkfehler beim Prüfen</span>';
+    });
 }
 
 // =========================================================
 // Radar switch
 // =========================================================
-const RADAR_URLS = {
-  blitz: 'https://www.blitzortung.org/de/live_lightning_maps.php?map=10',
-  regen: 'https://www.dwd.de/DWD/wetter/radar/rad_brd_akt.jpg',
-  satellite: 'https://www.sat24.com/de',
-};
+function getRadarURL(type) {
+  const lat = STATE.lat || 51.0;
+  const lon = STATE.lon || 10.0;
+  // Zoom: 8 für ~200km Radius (gut für Gewitterverfolgung)
+  const zoom = 8;
+  if (type === 'blitz') {
+    // RainViewer mit Blitz-Overlay – zentriert auf Koordinaten
+    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},${zoom}&oFa=0&oC=1&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1`;
+  }
+  if (type === 'regen') {
+    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},${zoom}&oFa=0&oC=0&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1`;
+  }
+  if (type === 'satellite') {
+    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},${zoom}&oFa=1&oC=0&oU=0&oCS=1&oF=0&oAP=0&rmt=4&c=3&o=83&lm=1&layer=satellite&sm=1&sn=1`;
+  }
+  return '';
+}
 
 function switchRadar(type) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
-  const frame = document.getElementById('radar-frame');
-  if (type === 'regen') {
-    // DWD Radar: embed as image since it's a JPEG
-    frame.outerHTML = '<div id="radar-frame" style="width:100%;height:420px;background:#000;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">' +
-      '<img src="https://www.dwd.de/DWD/wetter/radar/rad_brd_akt.jpg" style="max-width:100%;max-height:420px;object-fit:contain;" onerror="this.parentElement.innerHTML=\'<p style=color:var(--muted);text-align:center>DWD Radar Bild – <a href=https://www.dwd.de/DE/leistungen/radarbild_deutschland/radarbild_deutschland.html target=_blank style=color:var(--accent)>Direkt öffnen</a></p>\'">' +
-      '<button onclick="document.getElementById(\'radar-frame\').querySelector(\'img\').src=\'https://www.dwd.de/DWD/wetter/radar/rad_brd_akt.jpg?t=\'+Date.now()" style="position:absolute;top:10px;right:10px;background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;font-size:0.75rem;">↻ Neu laden</button>' +
-      '</div>';
-  } else {
-    const existing = document.getElementById('radar-frame');
-    const newFrame = document.createElement('iframe');
-    newFrame.id = 'radar-frame';
-    newFrame.className = 'radar-frame';
-    newFrame.src = RADAR_URLS[type];
-    newFrame.setAttribute('allowfullscreen', '');
-    newFrame.setAttribute('loading', 'lazy');
-    existing.parentNode.replaceChild(newFrame, existing);
-  }
+  const existing = document.getElementById('radar-frame');
+  const newFrame = document.createElement('iframe');
+  newFrame.id = 'radar-frame';
+  newFrame.className = 'radar-frame';
+  newFrame.src = getRadarURL(type);
+  newFrame.setAttribute('allowfullscreen', '');
+  newFrame.setAttribute('loading', 'lazy');
+  existing.parentNode.replaceChild(newFrame, existing);
 }
 
 // =========================================================
@@ -848,6 +879,7 @@ async function loadAll() {
   renderCompare();
   renderDaily();
   updateAlert();
+  updateRadarToLocation();
   document.getElementById('last-update').textContent = 'Zuletzt: ' + new Date().toLocaleTimeString('de-DE');
   document.getElementById('footer-time').textContent = new Date().toLocaleString('de-DE');
 }
@@ -1225,6 +1257,16 @@ function updateAlert() {
   }
 }
 
+function updateRadarToLocation() {
+  // Re-center the currently active radar tab on the new coordinates
+  const activeTab = document.querySelector('.tab.active');
+  const type = activeTab?.dataset?.radar || 'blitz';
+  const frame = document.getElementById('radar-frame');
+  if (frame && frame.tagName === 'IFRAME') {
+    frame.src = getRadarURL(type);
+  }
+}
+
 // =========================================================
 // Auto-refresh every 10 min
 // =========================================================
@@ -1236,16 +1278,10 @@ setInterval(() => {
 }, 10000);
 
 // =========================================================
-// Init: load last used city or prompt GPS
+// Init: Enter-Taste im Suchfeld
 // =========================================================
-const lastCity = localStorage.getItem('kletterwald_city');
-if (lastCity) {
-  document.getElementById('city-input').value = lastCity;
-}
-
 document.getElementById('city-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') searchCity();
-  if (STATE.lat) localStorage.setItem('kletterwald_city', document.getElementById('city-input').value);
 });
 </script>
 
