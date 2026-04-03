@@ -674,20 +674,22 @@ h1 { font-size: 1.2rem; }
     <div class="loading"><div class="spinner"></div> Wetterdaten werden geladen…</div>
   </div>
 
-  <!-- Radar Tabs -->
+  <!-- Karten Tabs -->
 
   <div class="radar-section">
     <div class="radar-header">
-      <div class="radar-title">🛰️ Live-Radar &amp; Blitze</div>
+      <div class="radar-title">🗺️ Wetterkarten – Vorhersage &amp; Live (Meteoblue / RainViewer)</div>
       <div class="radar-tabs">
-        <div class="tab active" data-radar="blitz" onclick="switchRadar('blitz')">⚡ Blitz + Radar</div>
-        <div class="tab" data-radar="regen" onclick="switchRadar('regen')">🌧️ Niederschlag</div>
-        <div class="tab" data-radar="satellite" onclick="switchRadar('satellite')">🛰️ Satellit</div>
+        <div class="tab active" data-radar="regen" onclick="switchRadar('regen')">🌧️ Regen-Vorhersage</div>
+        <div class="tab" data-radar="gewitter" onclick="switchRadar('gewitter')">⛈️ Gewitterindex</div>
+        <div class="tab" data-radar="wind" onclick="switchRadar('wind')">💨 Wind-Vorhersage</div>
+        <div class="tab" data-radar="blitz" onclick="switchRadar('blitz')">⚡ Blitz Live-Radar</div>
+        <div class="tab" data-radar="blitzortung" onclick="switchRadar('blitzortung')">🌩️ Blitzortung</div>
       </div>
     </div>
     <iframe id="radar-frame" class="radar-frame"
-      src="https://www.rainviewer.com/map.html?loc=51.0,10.0,6&oFa=0&oC=1&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1"
-      allowfullscreen loading="lazy"></iframe>
+      src="https://www.meteoblue.com/en/weather/maps/widget?windAnimation=0&gust=0&satellite=0&cloudsAndPrecipitation=1&temperature=0&sunshine=0&extremeForecastIndex=0&geoloc=fixed&tempunit=C&windunit=km%2Fh&lengthunit=metric&zoom=8&autowidth=auto&lat=49.8999&lon=9.9591"
+      allowfullscreen loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
   </div>
 
   <!-- Quellenvergleich -->
@@ -830,19 +832,26 @@ function saveOWMKey() {
 // Radar switch
 // =========================================================
 function getRadarURL(type) {
-  const lat = STATE.lat || 51.0;
-  const lon = STATE.lon || 10.0;
-  // Zoom: 8 für ~200km Radius (gut für Gewitterverfolgung)
-  const zoom = 8;
-  if (type === 'blitz') {
-    // RainViewer mit Blitz-Overlay – zentriert auf Koordinaten
-    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},${zoom}&oFa=0&oC=1&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1`;
-  }
+  const lat = STATE.lat || 49.8999;
+  const lon = STATE.lon || 9.9591;
+  const base = `https://www.meteoblue.com/en/weather/maps/widget?geoloc=fixed&tempunit=C&windunit=km%2Fh&lengthunit=metric&zoom=8&autowidth=auto&lat=${lat}&lon=${lon}`;
+
   if (type === 'regen') {
-    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},${zoom}&oFa=0&oC=0&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1`;
+    return base + '&windAnimation=0&gust=0&satellite=0&cloudsAndPrecipitation=1&temperature=0&sunshine=0&extremeForecastIndex=0';
   }
-  if (type === 'satellite') {
-    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},${zoom}&oFa=1&oC=0&oU=0&oCS=1&oF=0&oAP=0&rmt=4&c=3&o=83&lm=1&layer=satellite&sm=1&sn=1`;
+  if (type === 'wind') {
+    return base + '&windAnimation=1&gust=1&satellite=0&cloudsAndPrecipitation=0&temperature=0&sunshine=0&extremeForecastIndex=0';
+  }
+  if (type === 'gewitter') {
+    return base + '&windAnimation=0&gust=0&satellite=0&cloudsAndPrecipitation=0&temperature=0&sunshine=0&extremeForecastIndex=1';
+  }
+  if (type === 'blitz') {
+    // RainViewer für Live-Blitze (einzige freie Option mit echten Blitzen)
+    return `https://www.rainviewer.com/map.html?loc=${lat},${lon},8&oFa=0&oC=1&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=1&layer=radar&sm=1&sn=1`;
+  }
+  if (type === 'blitzortung') {
+    // Blitzortung.org – Live-Blitze mit Zugrichtung, auf Deutschland zentriert (keine Koordinaten-Parameter unterstützt)
+    return `https://www.blitzortung.org/de/live_lightning_maps.php?map=10`;
   }
   return '';
 }
@@ -857,6 +866,7 @@ function switchRadar(type) {
   newFrame.src = getRadarURL(type);
   newFrame.setAttribute('allowfullscreen', '');
   newFrame.setAttribute('loading', 'lazy');
+  newFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
   existing.parentNode.replaceChild(newFrame, existing);
 }
 
